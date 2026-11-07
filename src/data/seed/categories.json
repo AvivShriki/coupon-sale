@@ -1,0 +1,149 @@
+[
+  {
+    "slug": "entertainment",
+    "name": "הופעות ובידור",
+    "icon": "music",
+    "children": [
+      { "slug": "concerts", "name": "כרטיסי הופעות" },
+      { "slug": "standup", "name": "סטנדאפ" },
+      { "slug": "theater", "name": "הצגות" },
+      { "slug": "musicals", "name": "מחזות זמר" },
+      { "slug": "festivals", "name": "פסטיבלים" },
+      { "slug": "parties", "name": "מסיבות" },
+      { "slug": "live-music", "name": "מופעי מוזיקה" }
+    ]
+  },
+  {
+    "slug": "vacations",
+    "name": "חופשות ואירוח",
+    "icon": "palm",
+    "children": [
+      { "slug": "domestic", "name": "חופשות בארץ" },
+      { "slug": "abroad", "name": "חופשות בחו\"ל" },
+      { "slug": "hotels", "name": "בתי מלון" },
+      { "slug": "cabins", "name": "צימרים ווילות" },
+      { "slug": "packages", "name": "חבילות נופש" },
+      { "slug": "flights", "name": "טיסות שניתן להעביר" },
+      { "slug": "hosting", "name": "חבילות אירוח" }
+    ]
+  },
+  {
+    "slug": "attractions",
+    "name": "אטרקציות וחוויות",
+    "icon": "ferris-wheel",
+    "children": [
+      { "slug": "theme-parks", "name": "פארקי שעשועים" },
+      { "slug": "escape-rooms", "name": "חדרי בריחה" },
+      { "slug": "tours", "name": "טיולים וסיורים" },
+      { "slug": "kids", "name": "אטרקציות לילדים" },
+      { "slug": "extreme", "name": "פעילויות אקסטרים" },
+      { "slug": "cruises", "name": "שייט" },
+      { "slug": "couples", "name": "חוויות זוגיות" }
+    ]
+  },
+  {
+    "slug": "food",
+    "name": "אוכל וקולינריה",
+    "icon": "utensils",
+    "children": [
+      { "slug": "chef-dinners", "name": "ארוחות שף" },
+      { "slug": "cooking-workshops", "name": "סדנאות בישול" },
+      { "slug": "wine-tasting", "name": "טעימות יין" },
+      { "slug": "food-tours", "name": "סיורי אוכל" },
+      { "slug": "restaurant-vouchers", "name": "שוברים למסעדות" },
+      { "slug": "meal-packages", "name": "ארוחות וחבילות אירוח" }
+    ]
+  },
+  {
+    "slug": "spa",
+    "name": "ספא, בריאות וטיפוח",
+    "icon": "sparkles",
+    "children": [
+      { "slug": "massage", "name": "עיסויים" },
+      { "slug": "spa-packages", "name": "חבילות ספא" },
+      { "slug": "facial", "name": "טיפולי פנים" },
+      { "slug": "beauty", "name": "טיפולי יופי" },
+      { "slug": "body", "name": "טיפולי גוף" },
+      { "slug": "treatment-packages", "name": "חבילות טיפולים" },
+      { "slug": "gym", "name": "מנויי מכוני כושר" },
+      { "slug": "studio-classes", "name": "שיעורי סטודיו" }
+    ]
+  },
+  {
+    "slug": "digital",
+    "name": "מנויים ושירותים דיגיטליים",
+    "icon": "monitor-play",
+    "children": [
+      { "slug": "content", "name": "מנויי תוכן" },
+      { "slug": "streaming", "name": "שירותי סטרימינג" },
+      { "slug": "software", "name": "מנויי תוכנות" },
+      { "slug": "cloud-storage", "name": "שירותי אחסון בענן" },
+      { "slug": "learning-subscriptions", "name": "מנויי לימוד וקורסים" },
+      { "slug": "digital-fitness", "name": "מנויי כושר דיגיטליים" },
+      { "slug": "licenses", "name": "רישיונות תוכנה שניתן להעביר" }
+    ]
+  },
+  {
+    "slug": "education",
+    "name": "לימודים והעשרה",
+    "icon": "graduation-cap",
+    "children": [
+      { "slug": "online-courses", "name": "קורסים דיגיטליים" },
+      { "slug": "languages", "name": "קורסי שפות" },
+      { "slug": "professional", "name": "קורסים מקצועיים" },
+      { "slug": "workshops", "name": "סדנאות" },
+      { "slug": "conferences", "name": "כרטיסים לכנסים" },
+      { "slug": "lectures", "name": "כרטיסים להרצאות" },
+      { "slug": "pro-events", "name": "אירועים מקצועיים" }
+    ]
+  },
+  {
+    "slug": "special-events",
+    "name": "אירועים מיוחדים",
+    "icon": "party-popper",
+    "children": [
+      { "slug": "festival-tickets", "name": "כרטיסים לפסטיבלים" },
+      { "slug": "corporate", "name": "אירועי חברה" },
+      { "slug": "party-tickets", "name": "כרטיסים למסיבות" },
+      { "slug": "holidays", "name": "אירועי חגים" },
+      { "slug": "tasting-events", "name": "אירועי טעימות" },
+      { "slug": "vip", "name": "אירועי VIP" },
+      { "slug": "expos", "name": "כרטיסים לתערוכות" }
+    ]
+  },
+  {
+    "slug": "vouchers",
+    "name": "שוברים וזיכויים",
+    "icon": "gift",
+    "children": [
+      { "slug": "store-credit", "name": "זיכויים מחנויות" },
+      { "slug": "gift-cards", "name": "גיפט קארדים" },
+      { "slug": "fashion", "name": "שוברים לרשתות אופנה" },
+      { "slug": "electronics", "name": "שוברים למוצרי חשמל" },
+      { "slug": "cosmetics", "name": "שוברים לטיפוח" },
+      { "slug": "general", "name": "שוברים כלליים" }
+    ]
+  },
+  {
+    "slug": "sports",
+    "name": "ספורט ופנאי",
+    "icon": "trophy",
+    "children": [
+      { "slug": "games", "name": "כרטיסים למשחקי ספורט" },
+      { "slug": "team-memberships", "name": "מנויים לקבוצות" },
+      { "slug": "courts", "name": "מגרשי ספורט" },
+      { "slug": "padel", "name": "פאדל" },
+      { "slug": "activities", "name": "פעילויות ספורט" }
+    ]
+  },
+  {
+    "slug": "benefits",
+    "name": "שירותים והטבות",
+    "icon": "badge-percent",
+    "children": [
+      { "slug": "club", "name": "הטבות מועדון" },
+      { "slug": "service-packages", "name": "חבילות שירות" },
+      { "slug": "transferable", "name": "זכויות שניתנות להעברה" }
+    ]
+  }
+]
