@@ -7,10 +7,7 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { StepDetails } from "@/components/publish/steps/step-details";
 import { EmptyState } from "@/components/common/empty-state";
-import {
-  getListingForEditAction,
-  updateListingDetailsAction,
-} from "@/app/account/actions";
+import { getListing, updateListing } from "@/lib/data/local";
 import { useAuth } from "@/lib/auth/auth-context";
 import { rootOf } from "@/lib/categories";
 import { fieldsForRoot } from "@/lib/categories/category-fields";
@@ -20,17 +17,9 @@ import {
   type Errors,
   type ListingDraft,
 } from "@/lib/validation/listing";
-import type { Category } from "@/lib/data/types";
+import { categories, locations } from "@/lib/data/hooks";
 
-export function EditListingForm({
-  listingId,
-  categories,
-  locations,
-}: {
-  listingId: string;
-  categories: Category[];
-  locations: string[];
-}) {
+export function EditListingForm({ listingId }: { listingId: string }) {
   const { user, ready } = useAuth();
   const router = useRouter();
   const [draft, setDraft] = useState<ListingDraft | null>(null);
@@ -40,29 +29,28 @@ export function EditListingForm({
 
   useEffect(() => {
     if (!ready || !user) return;
-    void getListingForEditAction(listingId, user.id).then((listing) => {
-      if (!listing) {
-        setMissing(true);
-        return;
-      }
-      setDraft({
-        ...emptyDraft,
-        categoryId: listing.categoryId,
-        title: listing.title,
-        description: listing.description,
-        price: String(listing.price),
-        originalPrice: listing.originalPrice ? String(listing.originalPrice) : "",
-        location: listing.location ?? "",
-        eventDate: listing.eventDate ? listing.eventDate.slice(0, 10) : "",
-        expiresAt: listing.expiresAt ? listing.expiresAt.slice(0, 10) : "",
-        quantity: String(listing.quantity),
-        attributes: Object.fromEntries(
-          Object.entries(listing.attributes).map(([key, value]) => [
-            key,
-            value === null ? "" : String(value),
-          ]),
-        ),
-      });
+    const listing = getListing(listingId, true);
+    if (!listing || listing.sellerId !== user.id) {
+      setMissing(true);
+      return;
+    }
+    setDraft({
+      ...emptyDraft,
+      categoryId: listing.categoryId,
+      title: listing.title,
+      description: listing.description,
+      price: String(listing.price),
+      originalPrice: listing.originalPrice ? String(listing.originalPrice) : "",
+      location: listing.location ?? "",
+      eventDate: listing.eventDate ? listing.eventDate.slice(0, 10) : "",
+      expiresAt: listing.expiresAt ? listing.expiresAt.slice(0, 10) : "",
+      quantity: String(listing.quantity),
+      attributes: Object.fromEntries(
+        Object.entries(listing.attributes).map(([key, value]) => [
+          key,
+          value === null ? "" : String(value),
+        ]),
+      ),
     });
   }, [listingId, ready, user]);
 
@@ -109,8 +97,8 @@ export function EditListingForm({
       return;
     }
 
-    startTransition(async () => {
-      const result = await updateListingDetailsAction(listingId, user.id, {
+    startTransition(() => {
+      updateListing(listingId, {
         title: draft.title.trim(),
         description: draft.description.trim(),
         price: Number(draft.price),
@@ -121,14 +109,8 @@ export function EditListingForm({
         quantity: Number(draft.quantity),
         attributes: draft.attributes,
       });
-
-      if (result.ok) {
-        toast.success(result.message);
-        router.push("/account/listings");
-        router.refresh();
-      } else {
-        toast.error(result.message);
-      }
+      toast.success("השינויים נשמרו");
+      router.push("/account/listings");
     });
   }
 

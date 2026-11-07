@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { Plus } from "lucide-react";
-import { db } from "@/lib/data";
+import { categories } from "@/data/seed/categories";
 import { mainCategories } from "@/lib/categories";
 import { CategoryIcon } from "@/components/common/category-icon";
 import { Logo } from "@/components/layout/logo";
@@ -9,8 +9,7 @@ import { SearchBox } from "@/components/layout/search-box";
 import { HeaderUserActions } from "@/components/layout/account-link";
 import { MobileMenu } from "@/components/layout/mobile-menu";
 
-export async function SiteHeader() {
-  const categories = await db.getCategories();
+export function SiteHeader() {
   const roots = mainCategories(categories);
 
   return (

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Field, inputClass } from "@/components/publish/form-field";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isMockData } from "@/lib/data";
+import { isDemoData } from "@/lib/data";
 
 export function ProfileForm() {
   const { user, updateProfile } = useAuth();
@@ -95,7 +95,7 @@ export function ProfileForm() {
           שמירת שינויים
         </button>
 
-        {isMockData && (
+        {isDemoData && (
           <p className="text-xs text-muted-foreground">
             בגרסת ההדגמה הפרטים נשמרים בדפדפן בלבד.
           </p>

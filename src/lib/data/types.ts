@@ -146,26 +146,3 @@ export interface ReportInput {
   details: string | null;
   reporterId: string | null;
 }
-
-/**
- * הממשק היחיד שדרכו ה-UI נוגע בנתונים.
- * מימוש דמה: lib/data/mock. מימוש אמיתי: lib/data/supabase.
- */
-export interface DataSource {
-  getCategories(): Promise<Category[]>;
-  getCategoryByPath(path: string): Promise<Category | null>;
-  getLocations(): Promise<string[]>;
-
-  listListings(query?: ListingQuery): Promise<Paged<ListingView>>;
-  getListing(id: string): Promise<ListingView | null>;
-  getSimilarListings(id: string, limit?: number): Promise<ListingView[]>;
-  registerView(id: string): Promise<void>;
-
-  createListing(input: NewListingInput, sellerId: string): Promise<Listing>;
-  updateListing(id: string, patch: Partial<Listing>): Promise<Listing | null>;
-  deleteListing(id: string): Promise<boolean>;
-
-  getSeller(id: string): Promise<Seller | null>;
-  reportListing(input: ReportInput): Promise<void>;
-  listReports(): Promise<StoredReport[]>;
-}

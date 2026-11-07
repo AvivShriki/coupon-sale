@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useTransition } from "react";
+import { useTransition } from "react";
 import {
   CheckCircle2,
   Eye,
@@ -14,11 +14,8 @@ import {
 import { toast } from "sonner";
 import { CoverImage } from "@/components/common/cover-image";
 import { EmptyState } from "@/components/common/empty-state";
-import {
-  deleteListingAction,
-  getMyListingsAction,
-  setListingStatusAction,
-} from "@/app/account/actions";
+import { deleteListing, updateListing } from "@/lib/data/local";
+import { useListings } from "@/lib/data/hooks";
 import { useAuth } from "@/lib/auth/auth-context";
 import { formatNumber, formatPrice, formatRelative } from "@/lib/utils/format";
 import type { ListingStatus, ListingView } from "@/lib/data/types";
@@ -34,43 +31,33 @@ const statusLabels: Record<ListingStatus, { label: string; className: string }> 
 
 export function MyListings() {
   const { user } = useAuth();
-  const [listings, setListings] = useState<ListingView[] | null>(null);
   const [pending, startTransition] = useTransition();
+  const results = useListings({
+    sellerId: user?.id ?? "",
+    status: ["active", "paused", "sold", "expired", "pending_review"],
+    perPage: 200,
+  });
+  const listings = user ? results.items : [];
 
-  useEffect(() => {
-    if (!user) return;
-    void getMyListingsAction(user.id).then(setListings);
-  }, [user]);
-
-  function refresh() {
-    if (!user) return;
-    void getMyListingsAction(user.id).then(setListings);
+  /** בעלות נבדקת כאן; עם Supabase היא תיאכף גם ברמת מסד הנתונים */
+  function owns(listing: ListingView): boolean {
+    return Boolean(user && listing.sellerId === user.id);
   }
 
   function changeStatus(listing: ListingView, status: ListingStatus) {
-    if (!user) return;
-    startTransition(async () => {
-      const result = await setListingStatusAction(listing.id, user.id, status);
-      if (result.ok) {
-        toast.success(result.message);
-        refresh();
-      } else {
-        toast.error(result.message);
-      }
+    if (!owns(listing)) return;
+    startTransition(() => {
+      updateListing(listing.id, { status });
+      toast.success("המודעה עודכנה");
     });
   }
 
   function remove(listing: ListingView) {
-    if (!user) return;
+    if (!owns(listing)) return;
     if (!window.confirm(`למחוק את המודעה "${listing.title}"? הפעולה אינה הפיכה.`)) return;
-    startTransition(async () => {
-      const result = await deleteListingAction(listing.id, user.id);
-      if (result.ok) {
-        toast.success(result.message);
-        refresh();
-      } else {
-        toast.error(result.message);
-      }
+    startTransition(() => {
+      deleteListing(listing.id);
+      toast.success("המודעה נמחקה");
     });
   }
 
@@ -92,13 +79,7 @@ export function MyListings() {
         </Link>
       </div>
 
-      {listings === null ? (
-        <div className="space-y-3">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="h-28 animate-pulse rounded-2xl bg-muted" />
-          ))}
-        </div>
-      ) : listings.length === 0 ? (
+      {listings.length === 0 ? (
         <EmptyState
           title="אין לכם מודעות עדיין"
           description="כל כרטיס, שובר או מנוי שלא תנצלו יכול למצוא בעלים חדשים."

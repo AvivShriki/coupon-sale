@@ -1,14 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useTransition } from "react";
 import { Flag, Lock, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-import {
-  adminSetStatusAction,
-  getAdminSnapshotAction,
-  type AdminSnapshot,
-} from "@/app/admin/actions";
+import { updateListing } from "@/lib/data/local";
+import { useListings, useReports } from "@/lib/data/hooks";
 import { useAuth } from "@/lib/auth/auth-context";
 import { EmptyState } from "@/components/common/empty-state";
 import { formatPrice, formatRelative } from "@/lib/utils/format";
@@ -34,21 +31,25 @@ const statusNameSingular: Record<string, string> = {
 
 export function AdminPanel() {
   const { user, ready } = useAuth();
-  const [snapshot, setSnapshot] = useState<AdminSnapshot | null>(null);
   const [pending, startTransition] = useTransition();
+  const isAdmin = user?.role === "admin";
 
-  const load = useCallback(() => {
-    if (!user) return;
-    void getAdminSnapshotAction(user.role).then(setSnapshot);
-  }, [user]);
+  const all = useListings({
+    status: ["active", "paused", "sold", "expired", "pending_review", "removed"],
+    perPage: 1000,
+  });
+  const reports = useReports();
 
-  useEffect(load, [load]);
+  const byStatus: Record<string, number> = {};
+  for (const listing of all.items) {
+    byStatus[listing.status] = (byStatus[listing.status] ?? 0) + 1;
+  }
 
   if (!ready) {
     return <div className="container-page py-12"><div className="h-64 animate-pulse rounded-2xl bg-muted" /></div>;
   }
 
-  if (!user || user.role !== "admin") {
+  if (!isAdmin) {
     return (
       <div className="container-page py-12">
         <EmptyState
@@ -73,15 +74,10 @@ export function AdminPanel() {
   }
 
   function setStatus(listingId: string, status: "active" | "removed") {
-    if (!user) return;
-    startTransition(async () => {
-      const result = await adminSetStatusAction(user.role, listingId, status);
-      if (result.ok) {
-        toast.success(result.message);
-        load();
-      } else {
-        toast.error(result.message);
-      }
+    if (!isAdmin) return;
+    startTransition(() => {
+      updateListing(listingId, { status });
+      toast.success("סטטוס המודעה עודכן");
     });
   }
 
@@ -96,15 +92,12 @@ export function AdminPanel() {
         חיבור Supabase.
       </p>
 
-      {!snapshot ? (
-        <div className="mt-6 h-40 animate-pulse rounded-2xl bg-muted" />
-      ) : (
-        <>
+      <>
           <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
             {Object.entries(statusNames).map(([key, label]) => (
               <div key={key} className="rounded-2xl border border-border bg-card p-4">
                 <p className="num font-heading text-xl font-extrabold">
-                  {snapshot.byStatus[key] ?? 0}
+                  {byStatus[key] ?? 0}
                 </p>
                 <p className="text-xs text-muted-foreground">{label}</p>
               </div>
@@ -114,15 +107,15 @@ export function AdminPanel() {
           <section className="mt-8">
             <h2 className="flex items-center gap-2 font-heading text-lg font-bold">
               <Flag className="size-4" />
-              דיווחים ({snapshot.reports.length})
+              דיווחים ({reports.length})
             </h2>
-            {snapshot.reports.length === 0 ? (
+            {reports.length === 0 ? (
               <p className="mt-2 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
                 אין דיווחים פתוחים.
               </p>
             ) : (
               <ul className="mt-3 space-y-2">
-                {snapshot.reports.map((report) => (
+                {reports.map((report) => (
                   <li
                     key={report.id}
                     className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-card p-3 text-sm"
@@ -162,7 +155,7 @@ export function AdminPanel() {
                   </tr>
                 </thead>
                 <tbody>
-                  {snapshot.recent.map((listing) => (
+                  {all.items.slice(0, 12).map((listing) => (
                     <tr key={listing.id} className="border-t border-border">
                       <td className="max-w-56 truncate p-3">
                         <Link href={`/listing/${listing.id}`} className="hover:text-primary">
@@ -201,8 +194,7 @@ export function AdminPanel() {
               </table>
             </div>
           </section>
-        </>
-      )}
+      </>
     </div>
   );
 }

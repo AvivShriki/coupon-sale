@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { db } from "@/lib/data";
+import { categories } from "@/data/seed/categories";
 import { mainCategories } from "@/lib/categories";
 import { Logo } from "@/components/layout/logo";
 import { site } from "@/lib/site";
 
-export async function SiteFooter() {
-  const categories = await db.getCategories();
+export function SiteFooter() {
   const roots = mainCategories(categories).slice(0, 8);
 
   return (

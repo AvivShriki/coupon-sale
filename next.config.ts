@@ -1,11 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    // תמונות נשלחות כ-data URL עד שיחובר Supabase Storage
-    serverActions: { bodySizeLimit: "6mb" },
-  },
-  /* config options here */
+  // אתר סטטי לפריסה ב-GitHub Pages: אין שרת, כל הנתונים נקראים בדפדפן
+  output: "export",
+  trailingSlash: true,
+  images: { unoptimized: true },
 };
 
 export default nextConfig;

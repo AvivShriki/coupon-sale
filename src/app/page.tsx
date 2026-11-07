@@ -1,25 +1,23 @@
+"use client";
+
 import Link from "next/link";
 import { TrendingDown } from "lucide-react";
-import { db } from "@/lib/data";
+import { categories } from "@/data/seed/categories";
 import { mainCategories, rootOf } from "@/lib/categories";
+import { useListings } from "@/lib/data/hooks";
 import { Hero } from "@/components/home/hero";
 import { CategoryGrid } from "@/components/home/category-grid";
 import { HowItWorks } from "@/components/home/how-it-works";
 import { ListingGrid } from "@/components/listing/listing-grid";
 import { SectionHeader } from "@/components/common/section-header";
+import type { ListingView } from "@/lib/data/types";
 
-// הנתונים משתנים בזמן ריצה (פרסום, עריכה, מחיקה), ולכן העמוד לא נשמר כסטטי
-export const dynamic = "force-dynamic";
+const roots = mainCategories(categories);
 
-export default async function HomePage() {
-  const categories = await db.getCategories();
-  const roots = mainCategories(categories);
-
-  const [latest, deals, all] = await Promise.all([
-    db.listListings({ sort: "newest", perPage: 8 }),
-    db.listListings({ onlyDeals: true, sort: "discount", perPage: 4 }),
-    db.listListings({ perPage: 1000 }),
-  ]);
+export default function HomePage() {
+  const latest = useListings({ sort: "newest", perPage: 8 });
+  const deals = useListings({ onlyDeals: true, sort: "discount", perPage: 4 });
+  const all = useListings({ perPage: 1000 });
 
   // ספירת מודעות לכל קטגוריה ראשית — מוצגת בכרטיסי הקטגוריות
   const counts: Record<string, number> = {};
@@ -28,8 +26,8 @@ export default async function HomePage() {
     if (root) counts[root.id] = (counts[root.id] ?? 0) + 1;
   }
 
-  // בחירת שלוש מודעות להצגה ב-Hero מקטגוריות ראשיות שונות, כדי שהתצוגה לא תיראה חד-גונית
-  const featured: typeof deals.items = [];
+  // שלוש מודעות ל-Hero מקטגוריות שונות, כדי שהתצוגה לא תיראה חד-גונית
+  const featured: ListingView[] = [];
   const usedRoots = new Set<string>();
   for (const listing of [...all.items].sort(
     (a, b) => (b.discountPercent ?? 0) - (a.discountPercent ?? 0),

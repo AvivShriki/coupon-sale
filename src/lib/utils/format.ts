@@ -1,3 +1,5 @@
+import { SEED_BASE } from "@/data/seed/base-date";
+
 const priceFormatter = new Intl.NumberFormat("he-IL", {
   style: "currency",
   currency: "ILS",
@@ -35,9 +37,12 @@ export function formatShortDate(iso: string | null): string | null {
   return shortDateFormatter.format(new Date(iso));
 }
 
-/** "לפני 3 ימים" — בלי תלות בספריית תאריכים */
-export function formatRelative(iso: string): string {
-  const diffMs = Date.now() - new Date(iso).getTime();
+/**
+ * "לפני 3 ימים". נמדד מול תאריך הייחוס של הנתונים ולא מול השעון החי,
+ * כדי שהטקסט יהיה זהה בבנייה ובדפדפן.
+ */
+export function formatRelative(iso: string, now: number = SEED_BASE): string {
+  const diffMs = now - new Date(iso).getTime();
   const minutes = Math.round(diffMs / 60000);
   if (minutes < 1) return "כרגע";
   if (minutes < 60) return `לפני ${minutes} דק׳`;
@@ -57,9 +62,9 @@ export function discountPercent(price: number, originalPrice: number | null): nu
 }
 
 /** ימים עד התפוגה. שלילי = פג */
-export function daysUntil(iso: string | null): number | null {
+export function daysUntil(iso: string | null, now: number = SEED_BASE): number | null {
   if (!iso) return null;
-  const diff = new Date(iso).getTime() - Date.now();
+  const diff = new Date(iso).getTime() - now;
   return Math.ceil(diff / 86400000);
 }
 

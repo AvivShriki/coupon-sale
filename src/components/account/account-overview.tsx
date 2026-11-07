@@ -1,29 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { Eye, Heart, LayoutList, Plus, TrendingDown } from "lucide-react";
-import { getMyListingsAction } from "@/app/account/actions";
+import { useListings } from "@/lib/data/hooks";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useFavorites } from "@/lib/favorites";
 import { ListingGrid } from "@/components/listing/listing-grid";
 import { EmptyState } from "@/components/common/empty-state";
 import { formatNumber } from "@/lib/utils/format";
-import type { ListingView } from "@/lib/data/types";
 
 export function AccountOverview() {
   const { user } = useAuth();
   const { ids } = useFavorites();
-  const [listings, setListings] = useState<ListingView[] | null>(null);
+  const mine = useListings({
+    sellerId: user?.id ?? "",
+    status: ["active", "paused", "sold", "expired", "pending_review"],
+    perPage: 200,
+  });
+  const listings = user ? mine.items : [];
 
-  useEffect(() => {
-    if (!user) return;
-    void getMyListingsAction(user.id).then(setListings);
-  }, [user]);
-
-  const active = listings?.filter((listing) => listing.status === "active") ?? [];
-  const sold = listings?.filter((listing) => listing.status === "sold") ?? [];
-  const views = listings?.reduce((sum, listing) => sum + listing.views, 0) ?? 0;
+  const active = listings.filter((listing) => listing.status === "active");
+  const sold = listings.filter((listing) => listing.status === "sold");
+  const views = listings.reduce((sum, listing) => sum + listing.views, 0);
 
   return (
     <div>
@@ -51,13 +49,7 @@ export function AccountOverview() {
           </Link>
         </div>
 
-        {listings === null ? (
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <div key={index} className="h-64 animate-pulse rounded-2xl bg-muted" />
-            ))}
-          </div>
-        ) : listings.length === 0 ? (
+        {listings.length === 0 ? (
           <EmptyState
             title="עוד לא פרסמתם מודעה"
             description="יש לכם כרטיס, שובר או מנוי שלא תנצלו? זה המקום להעביר אותו הלאה."

@@ -1,11 +1,6 @@
-import { mockDataSource } from "./mock";
-import type { DataSource } from "./types";
-
 /**
- * נקודת הכניסה היחידה לנתונים.
- * כל רכיב קורא `db.listListings(...)` ולא יודע אם מתחת יושב seed מקומי או Postgres.
- * בשלב חיבור Supabase מחליפים כאן את המימוש לפי DATA_SOURCE, בלי לגעת ב-UI.
+ * גרסת התצוגה רצה על נתוני דמה בדפדפן (src/lib/data/local).
+ * כשיחובר Supabase הדגל הזה יכבה, והקריאות ב-src/lib/data/hooks.ts
+ * יופנו למסד הנתונים האמיתי.
  */
-export const db: DataSource = mockDataSource;
-
-export const isMockData = db === mockDataSource;
+export const isDemoData = true;

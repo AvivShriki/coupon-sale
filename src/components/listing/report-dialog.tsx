@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Flag } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { reportListingAction } from "@/app/listing/[id]/actions";
+import { reportListing } from "@/lib/data/local";
 
 const reasons = [
   "המודעה מטעה או שקרית",
@@ -24,21 +24,21 @@ const reasons = [
 export function ReportDialog({ listingId }: { listingId: string }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
-  const [pending, startTransition] = useTransition();
-
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    startTransition(async () => {
-      const result = await reportListingAction(formData);
-      if (result.ok) {
-        toast.success(result.message);
-        setOpen(false);
-        setReason("");
-      } else {
-        toast.error(result.message);
-      }
+    const details = String(formData.get("details") ?? "").trim();
+
+    reportListing({
+      listingId,
+      reason,
+      details: details || null,
+      reporterId: null,
     });
+
+    toast.success("הדיווח נשלח. צוות האתר יבדוק את המודעה.");
+    setOpen(false);
+    setReason("");
   }
 
   return (
@@ -106,10 +106,10 @@ export function ReportDialog({ listingId }: { listingId: string }) {
             </button>
             <button
               type="submit"
-              disabled={pending || !reason}
+              disabled={!reason}
               className="h-10 rounded-lg bg-destructive px-4 text-sm font-semibold text-destructive-foreground transition hover:opacity-90 disabled:opacity-50"
             >
-              {pending ? "שולח…" : "שליחת דיווח"}
+              שליחת דיווח
             </button>
           </div>
         </form>

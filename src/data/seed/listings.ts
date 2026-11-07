@@ -1,8 +1,9 @@
 import type { Listing, ListingStatus } from "@/lib/data/types";
 import { DEMO_USER_ID } from "./users";
+import { SEED_BASE } from "./base-date";
 
 const DAY = 86_400_000;
-const base = Date.now();
+const base = SEED_BASE;
 const iso = (offsetDays: number) => new Date(base + offsetDays * DAY).toISOString();
 
 type Row = {

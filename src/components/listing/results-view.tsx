@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
-import { db } from "@/lib/data";
+import { categories, locations } from "@/lib/data/hooks";
+import { useListings } from "@/lib/data/hooks";
 import { ListingGrid } from "@/components/listing/listing-grid";
 import { EmptyState } from "@/components/common/empty-state";
 import { Pagination } from "@/components/common/pagination";
@@ -9,7 +12,7 @@ import { activeFilterCount, type RawParams } from "@/lib/search-params";
 import type { ListingQuery } from "@/lib/data/types";
 
 /** אזור התוצאות המשותף לעמוד החיפוש ולעמודי הקטגוריות */
-export async function ResultsSection({
+export function ResultsView({
   query,
   params,
   basePath,
@@ -18,11 +21,7 @@ export async function ResultsSection({
   params: RawParams;
   basePath: string;
 }) {
-  const [results, categories, locations] = await Promise.all([
-    db.listListings(query),
-    db.getCategories(),
-    db.getLocations(),
-  ]);
+  const results = useListings(query);
 
   return (
     <div className="container-page grid gap-8 py-8 lg:grid-cols-[260px_1fr]">

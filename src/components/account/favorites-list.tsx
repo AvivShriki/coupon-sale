@@ -1,22 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { Heart } from "lucide-react";
-import { getListingsByIdsAction } from "@/app/account/actions";
+import { useListings } from "@/lib/data/hooks";
 import { useFavorites } from "@/lib/favorites";
 import { ListingGrid } from "@/components/listing/listing-grid";
 import { EmptyState } from "@/components/common/empty-state";
-import type { ListingView } from "@/lib/data/types";
 
 export function FavoritesList() {
   const { ids, ready } = useFavorites();
-  const [listings, setListings] = useState<ListingView[] | null>(null);
-
-  useEffect(() => {
-    if (!ready) return;
-    void getListingsByIdsAction(ids).then(setListings);
-  }, [ids, ready]);
+  const results = useListings({
+    ids,
+    status: ["active", "paused", "sold", "expired"],
+    perPage: 200,
+  });
+  const listings = ids.length > 0 ? results.items : [];
 
   return (
     <div>
@@ -26,7 +24,7 @@ export function FavoritesList() {
       </p>
 
       <div className="mt-6">
-        {!ready || listings === null ? (
+        {!ready ? (
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
             {Array.from({ length: 3 }).map((_, index) => (
               <div key={index} className="h-64 animate-pulse rounded-2xl bg-muted" />

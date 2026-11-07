@@ -12,7 +12,8 @@ import { StepImages } from "@/components/publish/steps/step-images";
 import { StepContact } from "@/components/publish/steps/step-contact";
 import { StepTerms } from "@/components/publish/steps/step-terms";
 import { StepPreview } from "@/components/publish/steps/step-preview";
-import { createListingAction } from "@/app/new/actions";
+import { createListing } from "@/lib/data/local";
+import { newListingSchema } from "@/lib/validation/listing";
 import { useAuth } from "@/lib/auth/auth-context";
 import { rootOf } from "@/lib/categories";
 import { fieldsForRoot } from "@/lib/categories/category-fields";
@@ -26,18 +27,12 @@ import {
   type Errors,
   type ListingDraft,
 } from "@/lib/validation/listing";
-import type { Category } from "@/lib/data/types";
+import { categories, locations } from "@/lib/data/hooks";
 
 const steps = ["קטגוריה", "פרטי המודעה", "תמונות", "יצירת קשר", "תנאים", "אישור"];
 const DRAFT_KEY = "coupon-sale.draft";
 
-export function PublishWizard({
-  categories,
-  locations,
-}: {
-  categories: Category[];
-  locations: string[];
-}) {
+export function PublishWizard() {
   const router = useRouter();
   const { user, ready } = useAuth();
   const [step, setStep] = useState(0);
@@ -141,35 +136,41 @@ export function PublishWizard({
       ? draft.images
       : [`/covers/${root?.slug ?? "benefits"}-1.svg`];
 
-    startTransition(async () => {
-      const result = await createListingAction(
+    const parsed = newListingSchema.safeParse({
+      categoryId: draft.categoryId,
+      title: draft.title.trim(),
+      description: draft.description.trim(),
+      price: Number(draft.price),
+      originalPrice: draft.originalPrice ? Number(draft.originalPrice) : null,
+      location: draft.location.trim() || null,
+      eventDate: draft.eventDate || null,
+      expiresAt: draft.expiresAt || draft.eventDate || null,
+      quantity: Number(draft.quantity),
+      attributes: draft.attributes,
+      images,
+      contact: {
+        whatsapp: phone,
+        phone,
+        email: draft.email.trim() || null,
+        preferred: draft.preferred,
+      },
+      transferConfirmed: true as const,
+    });
+
+    if (!parsed.success) {
+      toast.error("חלק מהפרטים אינם תקינים. בדקו את השדות ונסו שוב.");
+      return;
+    }
+
+    startTransition(() => {
+      const data = parsed.data;
+      const listing = createListing(
         {
-          categoryId: draft.categoryId,
-          title: draft.title.trim(),
-          description: draft.description.trim(),
-          price: Number(draft.price),
-          originalPrice: draft.originalPrice ? Number(draft.originalPrice) : null,
-          location: draft.location.trim() || null,
-          eventDate: draft.eventDate || null,
-          expiresAt: draft.expiresAt || draft.eventDate || null,
-          quantity: Number(draft.quantity),
-          attributes: draft.attributes,
-          images,
-          contact: {
-            whatsapp: phone,
-            phone,
-            email: draft.email.trim() || null,
-            preferred: draft.preferred,
-          },
-          transferConfirmed: true,
+          ...data,
+          images: data.images.map((url) => ({ url, alt: data.title })),
         },
         user.id,
       );
-
-      if (!result.ok) {
-        toast.error(result.message);
-        return;
-      }
 
       try {
         window.localStorage.removeItem(DRAFT_KEY);
@@ -177,8 +178,7 @@ export function PublishWizard({
         // אין מה לעשות אם האחסון חסום
       }
       toast.success("המודעה פורסמה!");
-      router.push(`/listing/${result.id}`);
-      router.refresh();
+      router.push(`/listing/${listing.id}`);
     });
   }
 
