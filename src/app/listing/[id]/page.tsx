@@ -1,21 +1,25 @@
 import type { Metadata } from "next";
-import { listings } from "@/data/seed/listings";
+import { fetchListingsForBuild } from "@/lib/data/build";
 import { ListingDetail } from "@/components/listing/listing-detail";
 
 type Props = { params: Promise<{ id: string }> };
 
 /**
- * עמוד לכל מודעה מה-seed נוצר מראש. מודעה שנוצרת בדפדפן מקבלת מזהה חדש
- * שאין לו עמוד סטטי — היא מוצגת דרך דף ה-404 שיודע לזהות כתובת מודעה.
+ * נוצר עמוד לכל מודעה פעילה בזמן הבנייה. מודעה חדשה יותר מוצגת דרך דף ה-404,
+ * שמזהה כתובת של מודעה וטוען אותה בדפדפן.
+ * הערך הסתמי נדרש כי ייצוא סטטי מחייב לפחות נתיב אחד.
  */
-export function generateStaticParams() {
-  return listings.map((listing) => ({ id: listing.id }));
+export async function generateStaticParams() {
+  const listings = await fetchListingsForBuild();
+  return listings.length > 0
+    ? listings.map((listing) => ({ id: listing.id }))
+    : [{ id: "none" }];
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const listing = listings.find((item) => item.id === id);
-  if (!listing) return { title: "המודעה לא נמצאה" };
+  const listing = (await fetchListingsForBuild()).find((item) => item.id === id);
+  if (!listing) return { title: "מודעה" };
   return {
     title: listing.title,
     description: listing.description.slice(0, 155),

@@ -1,60 +1,112 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import * as local from "@/lib/data/local";
-import type { ListingQuery, ListingView, Paged, StoredReport } from "@/lib/data/types";
+import { useCallback, useEffect, useRef, useState } from "react";
+import * as remote from "@/lib/data/remote";
+import { categories as seedCategories } from "@/data/seed/categories";
+import type {
+  Category,
+  ListingQuery,
+  ListingView,
+  Paged,
+  Seller,
+  StoredReport,
+} from "@/lib/data/types";
 
 /**
- * קורא נתונים בשני שלבים: הרינדור הראשון מחושב מנתוני ה-seed בלבד —
- * זהה למה שנוצר בזמן הבנייה — ומיד אחרי העלייה לדפדפן נקראים גם השינויים
- * המקומיים. כך אין אי-התאמה ב-hydration, והתוכן מוצג מיד בלי מסך טעינה.
- *
- * `key` מתאר את פרמטרי השאילתה; שינוי שלו מריץ קריאה מחדש.
+ * הממשק שהרכיבים משתמשים בו. מתחתיו יושב Supabase, והדפדפן פונה אליו ישירות
+ * כי האתר מתפרסם כקבצים סטטיים. ההרשאות נאכפות במסד הנתונים עצמו.
  */
-function useLocalData<T>(compute: (includeLocal: boolean) => T, key: string): T {
-  const computeRef = useRef(compute);
-  computeRef.current = compute;
 
-  const [value, setValue] = useState<T>(() => compute(false));
+export interface AsyncState<T> {
+  data: T;
+  loading: boolean;
+  error: string | null;
+  reload: () => void;
+}
+
+function useAsync<T>(run: () => Promise<T>, initial: T, key: string): AsyncState<T> {
+  const runRef = useRef(run);
+  runRef.current = run;
+
+  const [data, setData] = useState<T>(initial);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [nonce, setNonce] = useState(0);
 
   useEffect(() => {
-    const update = () => setValue(computeRef.current(true));
-    update();
-    return local.subscribe(update);
-  }, [key]);
+    let active = true;
+    setLoading(true);
+    setError(null);
 
-  return value;
+    runRef
+      .current()
+      .then((result) => {
+        if (!active) return;
+        setData(result);
+        setLoading(false);
+      })
+      .catch((cause: unknown) => {
+        if (!active) return;
+        setError(cause instanceof Error ? cause.message : "אירעה שגיאה בטעינת הנתונים");
+        setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [key, nonce]);
+
+  const reload = useCallback(() => setNonce((value) => value + 1), []);
+
+  return { data, loading, error, reload };
 }
 
-export function useListings(query: ListingQuery): Paged<ListingView> {
-  return useLocalData(
-    (includeLocal) => local.listListings(query, includeLocal),
-    JSON.stringify(query),
+const emptyPage: Paged<ListingView> = {
+  items: [],
+  total: 0,
+  page: 1,
+  perPage: 12,
+  pageCount: 1,
+};
+
+export function useListings(query: ListingQuery): AsyncState<Paged<ListingView>> {
+  return useAsync(() => remote.listListings(query), emptyPage, JSON.stringify(query));
+}
+
+export function useListing(id: string): AsyncState<ListingView | null> {
+  return useAsync(() => remote.getListing(id), null, id);
+}
+
+export function useSimilarListings(id: string, limit = 4): AsyncState<ListingView[]> {
+  return useAsync(() => remote.getSimilarListings(id, limit), [], `${id}:${limit}`);
+}
+
+export function useReports(): AsyncState<StoredReport[]> {
+  return useAsync(() => remote.listReports(), [], "reports");
+}
+
+export function useCategoryCounts(): AsyncState<Record<string, number>> {
+  return useAsync(() => remote.getCategoryCounts(), {}, "category-counts");
+}
+
+export function useSeller(id: string | undefined): Seller | null {
+  const { data } = useAsync(
+    () => (id ? remote.getSeller(id) : Promise.resolve(null)),
+    null,
+    id ?? "none",
   );
+  return data;
 }
 
-export function useListing(id: string): ListingView | null {
-  return useLocalData((includeLocal) => local.getListing(id, includeLocal), id);
+export function useLocations(): string[] {
+  const { data } = useAsync(() => remote.getLocations(), [], "locations");
+  return data;
 }
 
-export function useSimilarListings(id: string, limit = 4): ListingView[] {
-  return useLocalData(
-    (includeLocal) => local.getSimilarListings(id, includeLocal, limit),
-    `${id}:${limit}`,
-  );
+/** הקטגוריות קבועות ונשתלו במסד הנתונים מאותו קובץ, ולכן נקראות מקומית */
+export const categories: Category[] = seedCategories;
+
+export function categoryByPath(path: string): Category | null {
+  return seedCategories.find((category) => category.path === path) ?? null;
 }
 
-export function useReports(): StoredReport[] {
-  const [reports, setReports] = useState<StoredReport[]>([]);
-  useEffect(() => {
-    const update = () => setReports(local.listReports());
-    update();
-    return local.subscribe(update);
-  }, []);
-  return reports;
-}
-
-export const categories = local.getCategories();
-export const locations = local.getLocations();
-export const getSeller = local.getSeller;
-export const getCategoryByPath = local.getCategoryByPath;

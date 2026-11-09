@@ -5,9 +5,11 @@ import type { Category } from "@/lib/data/types";
 export function CategoryGrid({
   categories,
   counts,
+  showCounts = true,
 }: {
   categories: Category[];
   counts: Record<string, number>;
+  showCounts?: boolean;
 }) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -22,9 +24,11 @@ export function CategoryGrid({
           </span>
           <span className="min-w-0">
             <span className="block truncate text-sm font-bold">{category.name}</span>
-            <span className="num block text-xs text-muted-foreground">
-              {counts[category.id] ?? 0} מודעות
-            </span>
+            {showCounts && (
+              <span className="num block text-xs text-muted-foreground">
+                {counts[category.id] ?? 0} מודעות
+              </span>
+            )}
           </span>
         </Link>
       ))}

@@ -34,8 +34,19 @@ import { useListing, useSimilarListings } from "@/lib/data/hooks";
 import { EmptyState } from "@/components/common/empty-state";
 
 export function ListingDetail({ id }: { id: string }) {
-  const listing = useListing(id);
-  const similar = useSimilarListings(id, 4);
+  const { data: listing, loading } = useListing(id);
+  const { data: similar } = useSimilarListings(id, 4);
+
+  if (loading) {
+    return (
+      <div className="container-page py-8">
+        <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
+          <div className="aspect-[16/10] animate-pulse rounded-2xl bg-muted" />
+          <div className="h-72 animate-pulse rounded-2xl bg-muted" />
+        </div>
+      </div>
+    );
+  }
 
   if (!listing) {
     return (

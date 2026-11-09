@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { reportListing } from "@/lib/data/local";
+import { reportListing } from "@/lib/data/remote";
 
 const reasons = [
   "המודעה מטעה או שקרית",
@@ -29,16 +29,18 @@ export function ReportDialog({ listingId }: { listingId: string }) {
     const formData = new FormData(event.currentTarget);
     const details = String(formData.get("details") ?? "").trim();
 
-    reportListing({
+    void reportListing({
       listingId,
       reason,
       details: details || null,
       reporterId: null,
-    });
-
-    toast.success("הדיווח נשלח. צוות האתר יבדוק את המודעה.");
-    setOpen(false);
-    setReason("");
+    })
+      .then(() => {
+        toast.success("הדיווח נשלח. צוות האתר יבדוק את המודעה.");
+        setOpen(false);
+        setReason("");
+      })
+      .catch(() => toast.error("שליחת הדיווח נכשלה"));
   }
 
   return (

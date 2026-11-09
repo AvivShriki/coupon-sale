@@ -12,7 +12,8 @@ import { StepImages } from "@/components/publish/steps/step-images";
 import { StepContact } from "@/components/publish/steps/step-contact";
 import { StepTerms } from "@/components/publish/steps/step-terms";
 import { StepPreview } from "@/components/publish/steps/step-preview";
-import { createListing } from "@/lib/data/local";
+import { createListing } from "@/lib/data/remote";
+import { uploadListingImage } from "@/lib/data/remote/storage";
 import { newListingSchema } from "@/lib/validation/listing";
 import { useAuth } from "@/lib/auth/auth-context";
 import { rootOf } from "@/lib/categories";
@@ -27,13 +28,14 @@ import {
   type Errors,
   type ListingDraft,
 } from "@/lib/validation/listing";
-import { categories, locations } from "@/lib/data/hooks";
+import { categories, useLocations } from "@/lib/data/hooks";
 
 const steps = ["קטגוריה", "פרטי המודעה", "תמונות", "יצירת קשר", "תנאים", "אישור"];
 const DRAFT_KEY = "coupon-sale.draft";
 
 export function PublishWizard() {
   const router = useRouter();
+  const locations = useLocations();
   const { user, ready } = useAuth();
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<ListingDraft>(emptyDraft);
@@ -132,9 +134,6 @@ export function PublishWizard() {
     if (!user) return;
 
     const phone = normalizePhone(draft.whatsapp);
-    const images = draft.images.length
-      ? draft.images
-      : [`/covers/${root?.slug ?? "benefits"}-1.svg`];
 
     const parsed = newListingSchema.safeParse({
       categoryId: draft.categoryId,
@@ -147,7 +146,7 @@ export function PublishWizard() {
       expiresAt: draft.expiresAt || draft.eventDate || null,
       quantity: Number(draft.quantity),
       attributes: draft.attributes,
-      images,
+      images: draft.images,
       contact: {
         whatsapp: phone,
         phone,
@@ -162,23 +161,33 @@ export function PublishWizard() {
       return;
     }
 
-    startTransition(() => {
-      const data = parsed.data;
-      const listing = createListing(
-        {
-          ...data,
-          images: data.images.map((url) => ({ url, alt: data.title })),
-        },
-        user.id,
-      );
-
+    startTransition(async () => {
       try {
-        window.localStorage.removeItem(DRAFT_KEY);
-      } catch {
-        // אין מה לעשות אם האחסון חסום
+        const data = parsed.data;
+
+        // התמונות הוקטנו בדפדפן; כאן הן עולות לאחסון ומתקבלת כתובת ציבורית
+        const uploaded = await Promise.all(
+          data.images.map((dataUrl) => uploadListingImage(user.id, dataUrl)),
+        );
+
+        await createListing(
+          { ...data, images: uploaded.map((url) => ({ url, alt: data.title })) },
+          user.id,
+        );
+
+        try {
+          window.localStorage.removeItem(DRAFT_KEY);
+        } catch {
+          // אין מה לעשות אם האחסון חסום
+        }
+
+        toast.success("המודעה נשלחה לאישור", {
+          description: "היא תופיע באתר אחרי שצוות האתר יאשר אותה.",
+        });
+        router.push("/account/listings");
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "פרסום המודעה נכשל");
       }
-      toast.success("המודעה פורסמה!");
-      router.push(`/listing/${listing.id}`);
     });
   }
 
@@ -272,7 +281,7 @@ export function PublishWizard() {
               className="flex h-11 items-center gap-2 rounded-full bg-success px-6 text-sm font-semibold text-success-foreground transition hover:opacity-90 disabled:opacity-60"
             >
               {pending && <Loader2 className="size-4 animate-spin" />}
-              {pending ? "מפרסם…" : "פרסום המודעה"}
+              {pending ? "שולח…" : "שליחת המודעה לאישור"}
             </button>
           )}
         </div>

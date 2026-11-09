@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { useFavorites } from "@/lib/favorites";
 import { ListingGrid } from "@/components/listing/listing-grid";
 import { EmptyState } from "@/components/common/empty-state";
+import { CardsSkeleton } from "@/components/common/cards-skeleton";
 import { formatNumber } from "@/lib/utils/format";
 
 export function AccountOverview() {
@@ -17,7 +18,7 @@ export function AccountOverview() {
     status: ["active", "paused", "sold", "expired", "pending_review"],
     perPage: 200,
   });
-  const listings = user ? mine.items : [];
+  const listings = user ? mine.data.items : [];
 
   const active = listings.filter((listing) => listing.status === "active");
   const sold = listings.filter((listing) => listing.status === "sold");
@@ -49,7 +50,9 @@ export function AccountOverview() {
           </Link>
         </div>
 
-        {listings.length === 0 ? (
+        {mine.loading ? (
+          <CardsSkeleton count={3} columns={3} />
+        ) : listings.length === 0 ? (
           <EmptyState
             title="עוד לא פרסמתם מודעה"
             description="יש לכם כרטיס, שובר או מנוי שלא תנצלו? זה המקום להעביר אותו הלאה."

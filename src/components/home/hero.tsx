@@ -64,7 +64,9 @@ export function Hero({
           </div>
 
           <div className="mt-9 flex flex-wrap gap-x-8 gap-y-4">
-            <Stat value={formatNumber(activeCount)} label="מודעות פעילות" />
+            {activeCount > 0 && (
+              <Stat value={formatNumber(activeCount)} label="מודעות פעילות" />
+            )}
             <Stat value={formatNumber(categoryCount)} label="קטגוריות" />
             {averageDiscount !== null && (
               <Stat value={`${averageDiscount}%`} label="חיסכון ממוצע" />
@@ -78,14 +80,16 @@ export function Hero({
               <SearchBox size="lg" />
             </Suspense>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-4 pt-10">
-              {featured.slice(1, 3).map((listing) => (
-                <PreviewCard key={listing.id} listing={listing} />
-              ))}
+          {featured.length > 0 && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4 pt-10">
+                {featured.slice(1, 3).map((listing) => (
+                  <PreviewCard key={listing.id} listing={listing} />
+                ))}
+              </div>
+              {featured[0] && <PreviewCard listing={featured[0]} priority large />}
             </div>
-            {featured[0] && <PreviewCard listing={featured[0]} priority large />}
-          </div>
+          )}
         </div>
       </div>
     </section>

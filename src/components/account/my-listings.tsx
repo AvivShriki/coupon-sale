@@ -14,7 +14,7 @@ import {
 import { toast } from "sonner";
 import { CoverImage } from "@/components/common/cover-image";
 import { EmptyState } from "@/components/common/empty-state";
-import { deleteListing, updateListing } from "@/lib/data/local";
+import { deleteListing, updateListing } from "@/lib/data/remote";
 import { useListings } from "@/lib/data/hooks";
 import { useAuth } from "@/lib/auth/auth-context";
 import { formatNumber, formatPrice, formatRelative } from "@/lib/utils/format";
@@ -22,10 +22,10 @@ import type { ListingStatus, ListingView } from "@/lib/data/types";
 
 const statusLabels: Record<ListingStatus, { label: string; className: string }> = {
   active: { label: "פעילה", className: "bg-success-soft text-success" },
+  pending_review: { label: "ממתינה לאישור", className: "bg-accent/20 text-accent-foreground" },
   paused: { label: "מושהית", className: "bg-muted text-muted-foreground" },
   sold: { label: "נמכרה", className: "bg-primary-soft text-primary" },
   expired: { label: "פג תוקף", className: "bg-destructive/10 text-destructive" },
-  pending_review: { label: "בבדיקה", className: "bg-accent/20 text-accent-foreground" },
   removed: { label: "הוסרה", className: "bg-destructive/10 text-destructive" },
 };
 
@@ -37,7 +37,7 @@ export function MyListings() {
     status: ["active", "paused", "sold", "expired", "pending_review"],
     perPage: 200,
   });
-  const listings = user ? results.items : [];
+  const listings = user ? results.data.items : [];
 
   /** בעלות נבדקת כאן; עם Supabase היא תיאכף גם ברמת מסד הנתונים */
   function owns(listing: ListingView): boolean {
@@ -46,18 +46,28 @@ export function MyListings() {
 
   function changeStatus(listing: ListingView, status: ListingStatus) {
     if (!owns(listing)) return;
-    startTransition(() => {
-      updateListing(listing.id, { status });
-      toast.success("המודעה עודכנה");
+    startTransition(async () => {
+      try {
+        await updateListing(listing.id, { status });
+        toast.success("המודעה עודכנה");
+        results.reload();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "העדכון נכשל");
+      }
     });
   }
 
   function remove(listing: ListingView) {
     if (!owns(listing)) return;
     if (!window.confirm(`למחוק את המודעה "${listing.title}"? הפעולה אינה הפיכה.`)) return;
-    startTransition(() => {
-      deleteListing(listing.id);
-      toast.success("המודעה נמחקה");
+    startTransition(async () => {
+      try {
+        await deleteListing(listing.id);
+        toast.success("המודעה נמחקה");
+        results.reload();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "המחיקה נכשלה");
+      }
     });
   }
 
@@ -67,7 +77,7 @@ export function MyListings() {
         <div>
           <h1 className="font-heading text-2xl font-extrabold">המודעות שלי</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            עריכה, השהיה, סימון כנמכרה ומחיקה.
+            עריכה, השהיה, סימון כנמכרה ומחיקה. מודעה חדשה מופיעה באתר אחרי אישור.
           </p>
         </div>
         <Link
@@ -79,7 +89,13 @@ export function MyListings() {
         </Link>
       </div>
 
-      {listings.length === 0 ? (
+      {results.loading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div key={index} className="h-28 animate-pulse rounded-2xl bg-muted" />
+          ))}
+        </div>
+      ) : listings.length === 0 ? (
         <EmptyState
           title="אין לכם מודעות עדיין"
           description="כל כרטיס, שובר או מנוי שלא תנצלו יכול למצוא בעלים חדשים."
@@ -136,7 +152,7 @@ export function MyListings() {
                 </div>
 
                 <div className="flex flex-wrap gap-1.5 sm:shrink-0">
-                  <Action href={`/account/listings/${listing.id}/edit`} icon={<Pencil className="size-4" />}>
+                  <Action href={`/account/listings/edit?id=${listing.id}`} icon={<Pencil className="size-4" />}>
                     עריכה
                   </Action>
 

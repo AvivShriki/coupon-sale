@@ -7,7 +7,6 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Field, inputClass } from "@/components/publish/form-field";
 import { useAuth } from "@/lib/auth/auth-context";
-import { isDemoData } from "@/lib/data";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
@@ -132,13 +131,6 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             </Link>
           </p>
         </div>
-
-        {isDemoData && (
-          <p className="mt-4 rounded-xl bg-muted px-4 py-3 text-xs leading-relaxed text-muted-foreground">
-            גרסת הדגמה: ההתחברות מקומית בלבד ונשמרת בדפדפן שלכם. אפשר להזין כל
-            אימייל וסיסמה בת 6 תווים ומעלה. בחיבור ל-Supabase תוחלף באימות אמיתי.
-          </p>
-        )}
       </div>
     </div>
   );

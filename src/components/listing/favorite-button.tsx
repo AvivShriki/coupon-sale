@@ -17,20 +17,28 @@ export function FavoriteButton({
   const { has, toggle, ready } = useFavorites();
   const active = ready && has(listingId);
 
-  function onClick(event: React.MouseEvent) {
+  async function onClick(event: React.MouseEvent) {
     event.preventDefault();
     event.stopPropagation();
-    const added = toggle(listingId);
-    toast.success(added ? "נשמר במועדפים" : "הוסר מהמועדפים", {
-      description: title,
-    });
+    try {
+      const added = await toggle(listingId);
+      if (added === null) {
+        toast.error("צריך להתחבר כדי לשמור מודעות", {
+          description: "המועדפים נשמרים בחשבון שלכם",
+        });
+        return;
+      }
+      toast.success(added ? "נשמר במועדפים" : "הוסר מהמועדפים", { description: title });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "השמירה נכשלה");
+    }
   }
 
   if (variant === "inline") {
     return (
       <button
         type="button"
-        onClick={onClick}
+        onClick={(event) => void onClick(event)}
         aria-pressed={active}
         className={cn(
           "flex h-11 items-center gap-2 rounded-full border px-4 text-sm font-medium transition",
@@ -48,7 +56,7 @@ export function FavoriteButton({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={(event) => void onClick(event)}
       aria-label={active ? `הסרת ${title} מהמועדפים` : `שמירת ${title} למועדפים`}
       aria-pressed={active}
       className={cn(

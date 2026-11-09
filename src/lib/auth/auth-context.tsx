@@ -8,7 +8,8 @@ import {
   useMemo,
   useState,
 } from "react";
-import { DEMO_USER_ID } from "@/data/seed/users";
+import type { Session } from "@supabase/supabase-js";
+import { getSupabase } from "@/lib/supabase/client";
 
 export type UserRole = "user" | "admin";
 
@@ -21,101 +22,123 @@ export interface SessionUser {
   role: UserRole;
 }
 
-/** במצב דמה כתובת שמתחילה ב-admin@ מקבלת הרשאת ניהול, כדי שאפשר יהיה לבדוק את הפאנל */
-function roleFor(email: string): UserRole {
-  return email.trim().toLowerCase().startsWith("admin@") ? "admin" : "user";
-}
-
 interface AuthState {
   user: SessionUser | null;
-  /** false עד שהקריאה מ-localStorage הסתיימה — מונע הבהוב וחוסר התאמה ב-hydration */
+  /** false עד שהסשן נבדק מול Supabase — מונע הבהוב בין אורח למחובר */
   ready: boolean;
   signIn(email: string, password: string): Promise<void>;
-  signUp(input: { displayName: string; email: string; password: string; phone: string }): Promise<void>;
-  signOut(): void;
-  updateProfile(patch: Partial<Omit<SessionUser, "id">>): void;
+  signUp(input: {
+    displayName: string;
+    email: string;
+    password: string;
+    phone: string;
+  }): Promise<void>;
+  signOut(): Promise<void>;
+  updateProfile(patch: Partial<Omit<SessionUser, "id" | "role">>): Promise<void>;
 }
-
-const STORAGE_KEY = "coupon-sale.session";
 
 const AuthContext = createContext<AuthState | null>(null);
 
-function read(): SessionUser | null {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as SessionUser) : null;
-  } catch {
-    return null;
-  }
+/** שגיאות Supabase מגיעות באנגלית; כאן מתרגמים את הנפוצות */
+function translateError(message: string): string {
+  const map: Record<string, string> = {
+    "Invalid login credentials": "אימייל או סיסמה שגויים",
+    "User already registered": "כתובת האימייל הזו כבר רשומה",
+    "Password should be at least 6 characters.": "הסיסמה צריכה להכיל לפחות 6 תווים",
+    "Email not confirmed": "צריך לאשר את כתובת האימייל לפני ההתחברות",
+    "Unable to validate email address: invalid format": "כתובת האימייל אינה תקינה",
+  };
+  return map[message] ?? message;
 }
 
-function write(user: SessionUser | null) {
-  try {
-    if (user) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-    else window.localStorage.removeItem(STORAGE_KEY);
-  } catch {
-    // אחסון חסום (גלישה פרטית) — הסשן יחיה עד רענון הדף
-  }
+async function loadProfile(session: Session): Promise<SessionUser> {
+  const { data } = await getSupabase()
+    .from("profiles")
+    .select("display_name, phone, city, role")
+    .eq("id", session.user.id)
+    .maybeSingle();
+
+  return {
+    id: session.user.id,
+    email: session.user.email ?? "",
+    displayName:
+      (data?.display_name as string | undefined) ??
+      (session.user.user_metadata?.display_name as string | undefined) ??
+      (session.user.email?.split("@")[0] || "משתמש"),
+    phone: (data?.phone as string | null) ?? null,
+    city: (data?.city as string | null) ?? null,
+    role: ((data?.role as UserRole | undefined) ?? "user") as UserRole,
+  };
 }
 
-/**
- * ניהול סשן במצב דמה: המשתמש נשמר ב-localStorage ומזוהה כמשתמש הדמה של ה-seed,
- * כך שהאזור האישי מציג מודעות אמיתיות. בשלב Supabase המימוש מוחלף ב-supabase.auth.
- */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setUser(read());
-    setReady(true);
+    const supabase = getSupabase();
+    let active = true;
+
+    async function apply(session: Session | null) {
+      if (!active) return;
+      setUser(session ? await loadProfile(session) : null);
+      setReady(true);
+    }
+
+    void supabase.auth.getSession().then(({ data }) => apply(data.session));
+
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      void apply(session);
+    });
+
+    return () => {
+      active = false;
+      subscription.subscription.unsubscribe();
+    };
   }, []);
 
-  const persist = useCallback((next: SessionUser | null) => {
-    setUser(next);
-    write(next);
+  const signIn = useCallback(async (email: string, password: string) => {
+    const { error } = await getSupabase().auth.signInWithPassword({ email, password });
+    if (error) throw new Error(translateError(error.message));
   }, []);
-
-  const signIn = useCallback(
-    async (email: string) => {
-      persist({
-        id: DEMO_USER_ID,
-        displayName: email.split("@")[0] || "משתמש",
-        email,
-        phone: "052-555-0147",
-        city: "תל אביב",
-        role: roleFor(email),
-      });
-    },
-    [persist],
-  );
 
   const signUp = useCallback(
     async (input: { displayName: string; email: string; password: string; phone: string }) => {
-      persist({
-        id: DEMO_USER_ID,
-        displayName: input.displayName,
+      const { error } = await getSupabase().auth.signUp({
         email: input.email,
-        phone: input.phone,
-        city: null,
-        role: roleFor(input.email),
+        password: input.password,
+        options: {
+          // הטריגר handle_new_user יוצר מזה את הפרופיל
+          data: { display_name: input.displayName, phone: input.phone },
+        },
       });
-    },
-    [persist],
-  );
-
-  const signOut = useCallback(() => persist(null), [persist]);
-
-  const updateProfile = useCallback(
-    (patch: Partial<Omit<SessionUser, "id">>) => {
-      setUser((current) => {
-        if (!current) return current;
-        const next = { ...current, ...patch };
-        write(next);
-        return next;
-      });
+      if (error) throw new Error(translateError(error.message));
     },
     [],
+  );
+
+  const signOut = useCallback(async () => {
+    await getSupabase().auth.signOut();
+    setUser(null);
+  }, []);
+
+  const updateProfile = useCallback(
+    async (patch: Partial<Omit<SessionUser, "id" | "role">>) => {
+      if (!user) return;
+      const payload: Record<string, unknown> = {};
+      if (patch.displayName !== undefined) payload.display_name = patch.displayName;
+      if (patch.phone !== undefined) payload.phone = patch.phone;
+      if (patch.city !== undefined) payload.city = patch.city;
+
+      const { error } = await getSupabase()
+        .from("profiles")
+        .update(payload)
+        .eq("id", user.id);
+      if (error) throw new Error(error.message);
+
+      setUser({ ...user, ...patch });
+    },
+    [user],
   );
 
   const value = useMemo<AuthState>(

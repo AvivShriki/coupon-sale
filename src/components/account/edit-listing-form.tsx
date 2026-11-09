@@ -7,7 +7,7 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { StepDetails } from "@/components/publish/steps/step-details";
 import { EmptyState } from "@/components/common/empty-state";
-import { getListing, updateListing } from "@/lib/data/local";
+import { getListing, updateListing } from "@/lib/data/remote";
 import { useAuth } from "@/lib/auth/auth-context";
 import { rootOf } from "@/lib/categories";
 import { fieldsForRoot } from "@/lib/categories/category-fields";
@@ -17,10 +17,11 @@ import {
   type Errors,
   type ListingDraft,
 } from "@/lib/validation/listing";
-import { categories, locations } from "@/lib/data/hooks";
+import { categories, useLocations } from "@/lib/data/hooks";
 
 export function EditListingForm({ listingId }: { listingId: string }) {
   const { user, ready } = useAuth();
+  const locations = useLocations();
   const router = useRouter();
   const [draft, setDraft] = useState<ListingDraft | null>(null);
   const [missing, setMissing] = useState(false);
@@ -29,30 +30,57 @@ export function EditListingForm({ listingId }: { listingId: string }) {
 
   useEffect(() => {
     if (!ready || !user) return;
-    const listing = getListing(listingId, true);
-    if (!listing || listing.sellerId !== user.id) {
-      setMissing(true);
-      return;
-    }
-    setDraft({
-      ...emptyDraft,
-      categoryId: listing.categoryId,
-      title: listing.title,
-      description: listing.description,
-      price: String(listing.price),
-      originalPrice: listing.originalPrice ? String(listing.originalPrice) : "",
-      location: listing.location ?? "",
-      eventDate: listing.eventDate ? listing.eventDate.slice(0, 10) : "",
-      expiresAt: listing.expiresAt ? listing.expiresAt.slice(0, 10) : "",
-      quantity: String(listing.quantity),
-      attributes: Object.fromEntries(
-        Object.entries(listing.attributes).map(([key, value]) => [
-          key,
-          value === null ? "" : String(value),
-        ]),
-      ),
-    });
+    let active = true;
+
+    void getListing(listingId)
+      .then((listing) => {
+        if (!active) return;
+        if (!listing || listing.sellerId !== user.id) {
+          setMissing(true);
+          return;
+        }
+        setDraft({
+          ...emptyDraft,
+          categoryId: listing.categoryId,
+          title: listing.title,
+          description: listing.description,
+          price: String(listing.price),
+          originalPrice: listing.originalPrice ? String(listing.originalPrice) : "",
+          location: listing.location ?? "",
+          eventDate: listing.eventDate ? listing.eventDate.slice(0, 10) : "",
+          expiresAt: listing.expiresAt ? listing.expiresAt.slice(0, 10) : "",
+          quantity: String(listing.quantity),
+          attributes: Object.fromEntries(
+            Object.entries(listing.attributes).map(([key, value]) => [
+              key,
+              value === null ? "" : String(value),
+            ]),
+          ),
+        });
+      })
+      .catch(() => setMissing(true));
+
+    return () => {
+      active = false;
+    };
   }, [listingId, ready, user]);
+
+  if (ready && !user) {
+    return (
+      <EmptyState
+        title="צריך להתחבר"
+        description="אפשר לערוך רק מודעות של החשבון שלך."
+        action={
+          <Link
+            href="/login?next=/account/listings"
+            className="mt-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+          >
+            התחברות
+          </Link>
+        }
+      />
+    );
+  }
 
   if (missing) {
     return (
@@ -97,8 +125,9 @@ export function EditListingForm({ listingId }: { listingId: string }) {
       return;
     }
 
-    startTransition(() => {
-      updateListing(listingId, {
+    startTransition(async () => {
+      try {
+        await updateListing(listingId, {
         title: draft.title.trim(),
         description: draft.description.trim(),
         price: Number(draft.price),
@@ -107,10 +136,13 @@ export function EditListingForm({ listingId }: { listingId: string }) {
         eventDate: draft.eventDate || null,
         expiresAt: draft.expiresAt || null,
         quantity: Number(draft.quantity),
-        attributes: draft.attributes,
-      });
-      toast.success("השינויים נשמרו");
-      router.push("/account/listings");
+          attributes: draft.attributes,
+        });
+        toast.success("השינויים נשמרו");
+        router.push("/account/listings");
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "השמירה נכשלה");
+      }
     });
   }
 

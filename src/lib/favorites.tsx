@@ -8,57 +8,80 @@ import {
   useMemo,
   useState,
 } from "react";
+import { addFavorite, listFavorites, removeFavorite } from "@/lib/data/remote/favorites";
+import { useAuth } from "@/lib/auth/auth-context";
 
 interface FavoritesState {
   ids: string[];
   ready: boolean;
+  /** null כשהמשתמש אינו מחובר — הקריאה לא בוצעה */
+  requiresLogin: boolean;
   has(id: string): boolean;
-  toggle(id: string): boolean;
+  toggle(id: string): Promise<boolean | null>;
 }
-
-const STORAGE_KEY = "coupon-sale.favorites";
 
 const FavoritesContext = createContext<FavoritesState | null>(null);
 
-/**
- * מועדפים במצב דמה נשמרים בדפדפן. בשלב Supabase זה עובר לטבלת favorites
- * עם RLS לפי המשתמש המחובר, והממשק כאן נשאר זהה.
- */
+/** המועדפים נשמרים בטבלה עם הרשאות פרטיות למשתמש, ולכן דורשים התחברות */
 export function FavoritesProvider({ children }: { children: React.ReactNode }) {
+  const { user, ready: authReady } = useAuth();
   const [ids, setIds] = useState<string[]>([]);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) setIds(JSON.parse(raw) as string[]);
-    } catch {
-      // אחסון חסום — המועדפים יישארו בזיכרון בלבד
+    if (!authReady) return;
+    if (!user) {
+      setIds([]);
+      setReady(true);
+      return;
     }
-    setReady(true);
-  }, []);
 
-  const persist = useCallback((next: string[]) => {
-    setIds(next);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      // מתעלמים בכוונה
-    }
-  }, []);
+    let active = true;
+    listFavorites(user.id)
+      .then((result) => {
+        if (active) setIds(result);
+      })
+      .catch(() => {
+        if (active) setIds([]);
+      })
+      .finally(() => {
+        if (active) setReady(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [user, authReady]);
 
   const toggle = useCallback(
-    (id: string) => {
+    async (id: string): Promise<boolean | null> => {
+      if (!user) return null;
+
       const exists = ids.includes(id);
-      persist(exists ? ids.filter((x) => x !== id) : [...ids, id]);
-      return !exists;
+      setIds((current) => (exists ? current.filter((x) => x !== id) : [...current, id]));
+
+      try {
+        if (exists) await removeFavorite(user.id, id);
+        else await addFavorite(user.id, id);
+        return !exists;
+      } catch {
+        // החזרת המצב הקודם אם הכתיבה נכשלה
+        setIds((current) => (exists ? [...current, id] : current.filter((x) => x !== id)));
+        throw new Error("שמירת המועדף נכשלה");
+      }
     },
-    [ids, persist],
+    [ids, user],
   );
 
   const value = useMemo<FavoritesState>(
-    () => ({ ids, ready, has: (id) => ids.includes(id), toggle }),
-    [ids, ready, toggle],
+    () => ({
+      ids,
+      ready,
+      requiresLogin: !user,
+      has: (id) => ids.includes(id),
+      toggle,
+    }),
+    [ids, ready, user, toggle],
   );
 
   return (

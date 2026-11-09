@@ -1,22 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { categories, useListings } from "@/lib/data/hooks";
-import { childrenOf, mainCategories, rootOf } from "@/lib/categories";
+import { categories, useCategoryCounts } from "@/lib/data/hooks";
+import { childrenOf, mainCategories } from "@/lib/categories";
 import { Breadcrumbs } from "@/components/common/breadcrumbs";
 import { CategoryIcon } from "@/components/common/category-icon";
 
 const roots = mainCategories(categories);
 
 export function CategoriesView() {
-  const all = useListings({ perPage: 1000 });
-
-  const counts: Record<string, number> = {};
-  for (const listing of all.items) {
-    counts[listing.categoryId] = (counts[listing.categoryId] ?? 0) + 1;
-    const root = rootOf(categories, listing.categoryId);
-    if (root) counts[root.id] = (counts[root.id] ?? 0) + 1;
-  }
+  const { data: counts } = useCategoryCounts();
 
   return (
     <div className="container-page py-8">

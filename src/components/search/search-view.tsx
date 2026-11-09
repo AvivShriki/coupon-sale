@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { getCategoryByPath, getSeller } from "@/lib/data/hooks";
+import { categoryByPath, useSeller } from "@/lib/data/hooks";
 import { ResultsView } from "@/components/listing/results-view";
 import { Breadcrumbs } from "@/components/common/breadcrumbs";
 import { SearchBox } from "@/components/layout/search-box";
@@ -12,8 +12,8 @@ export function SearchView() {
   const params: RawParams = Object.fromEntries(searchParams.entries());
   const query = parseSearchParams(params);
 
-  const category = query.categoryId ? getCategoryByPath(query.categoryId) : null;
-  const seller = query.sellerId ? getSeller(query.sellerId) : null;
+  const category = query.categoryId ? categoryByPath(query.categoryId) : null;
+  const seller = useSeller(query.sellerId);
 
   const heading = seller
     ? `המודעות של ${seller.displayName}`
