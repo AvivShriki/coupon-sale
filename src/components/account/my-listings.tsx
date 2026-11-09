@@ -22,7 +22,7 @@ import type { ListingStatus, ListingView } from "@/lib/data/types";
 
 const statusLabels: Record<ListingStatus, { label: string; className: string }> = {
   active: { label: "פעילה", className: "bg-success-soft text-success" },
-  pending_review: { label: "ממתינה לאישור", className: "bg-accent/20 text-accent-foreground" },
+  pending_review: { label: "בבדיקה", className: "bg-accent/20 text-accent-foreground" },
   paused: { label: "מושהית", className: "bg-muted text-muted-foreground" },
   sold: { label: "נמכרה", className: "bg-primary-soft text-primary" },
   expired: { label: "פג תוקף", className: "bg-destructive/10 text-destructive" },
@@ -111,7 +111,9 @@ export function MyListings() {
       ) : (
         <ul className="space-y-3">
           {listings.map((listing) => {
-            const status = statusLabels[listing.status];
+            const status = listing.approved
+              ? statusLabels[listing.status]
+              : { label: "ממתינה לאישור", className: "bg-accent/20 text-accent-foreground" };
             return (
               <li
                 key={listing.id}

@@ -40,6 +40,7 @@ export function buildPreview(
       position: index,
     })),
     status: "active",
+    approved: true,
     createdAt: new Date().toISOString(),
     views: 0,
     sellerId: "preview",

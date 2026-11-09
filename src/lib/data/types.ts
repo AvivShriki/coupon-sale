@@ -70,6 +70,8 @@ export interface Listing {
   attributes: Record<string, string | number | boolean | null>;
   images: ListingImage[];
   status: ListingStatus;
+  /** מודעה מופיעה באתר רק אחרי אישור מנהל */
+  approved: boolean;
   createdAt: string;
   views: number;
   sellerId: string;
@@ -105,6 +107,8 @@ export interface ListingQuery {
   onlyDeals?: boolean;
   sellerId?: string;
   ids?: string[];
+  /** רק מודעות שממתינות לאישור — לפאנל הניהול */
+  pendingApproval?: boolean;
   status?: ListingStatus[];
   sort?: ListingSort;
   page?: number;

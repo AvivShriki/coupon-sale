@@ -52,6 +52,7 @@ interface ListingRow {
   quantity: number;
   attributes: Record<string, string | number | boolean | null> | null;
   status: Listing["status"];
+  approved: boolean;
   views: number;
   contact_whatsapp: string;
   contact_phone: string | null;
@@ -121,6 +122,7 @@ async function toView(row: ListingRow): Promise<ListingView> {
     attributes: row.attributes ?? {},
     images,
     status: row.status,
+    approved: row.approved,
     createdAt: row.created_at,
     views: row.views,
     sellerId: row.seller_id,
@@ -150,6 +152,7 @@ export async function listListings(query: ListingQuery = {}): Promise<Paged<List
     .in("status", query.status ?? ["active"]);
 
   if (query.ids) request = request.in("id", query.ids);
+  if (query.pendingApproval) request = request.eq("approved", false);
   if (query.sellerId) request = request.eq("seller_id", query.sellerId);
   if (query.categoryId) {
     const ids = await uuidsForSubtree(query.categoryId);
@@ -291,6 +294,7 @@ export async function updateListing(
   if (patch.quantity !== undefined) payload.quantity = patch.quantity;
   if (patch.attributes !== undefined) payload.attributes = patch.attributes;
   if (patch.status !== undefined) payload.status = patch.status;
+  if (patch.approved !== undefined) payload.approved = patch.approved;
 
   const { error } = await getSupabase().from("listings").update(payload).eq("id", id);
   if (error) throw new Error(error.message);

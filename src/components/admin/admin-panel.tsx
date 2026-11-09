@@ -12,7 +12,6 @@ import { formatPrice, formatRelative } from "@/lib/utils/format";
 import type { ListingStatus, ListingView } from "@/lib/data/types";
 
 const statusNames: Record<string, string> = {
-  pending_review: "ממתינה לאישור",
   active: "פעילה",
   paused: "מושהית",
   sold: "נמכרה",
@@ -26,12 +25,13 @@ export function AdminPanel() {
   const isAdmin = user?.role === "admin";
 
   const queue = useListings({
-    status: ["pending_review"],
+    pendingApproval: true,
+    status: ["active", "paused", "sold"],
     sort: "newest",
     perPage: 50,
   });
   const all = useListings({
-    status: ["active", "paused", "sold", "expired", "pending_review", "removed"],
+    status: ["active", "paused", "sold", "expired", "removed"],
     perPage: 50,
   });
   const reports = useReports();
@@ -66,6 +66,19 @@ export function AdminPanel() {
         />
       </div>
     );
+  }
+
+  function approve(listing: ListingView) {
+    startTransition(async () => {
+      try {
+        await updateListing(listing.id, { approved: true, status: "active" });
+        toast.success("המודעה אושרה ופורסמה");
+        queue.reload();
+        all.reload();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "האישור נכשל");
+      }
+    });
   }
 
   function setStatus(listing: ListingView, status: ListingStatus, message: string) {
@@ -129,14 +142,14 @@ export function AdminPanel() {
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {listing.category.name} · {listing.seller.displayName} ·{" "}
                     <span className="num">{formatPrice(listing.price)}</span> ·{" "}
-                    {formatRelative(listing.createdAt, Date.now())}
+                    {formatRelative(listing.createdAt)}
                   </p>
                 </div>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     disabled={pending}
-                    onClick={() => setStatus(listing, "active", "המודעה אושרה ופורסמה")}
+                    onClick={() => approve(listing)}
                     className="flex h-9 items-center gap-1.5 rounded-lg bg-success px-3 text-xs font-semibold text-success-foreground transition hover:opacity-90 disabled:opacity-50"
                   >
                     <Check className="size-4" />
@@ -158,7 +171,7 @@ export function AdminPanel() {
         )}
       </section>
 
-      <div className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-6">
+      <div className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-5">
         {Object.entries(statusNames).map(([key, label]) => (
           <div key={key} className="rounded-2xl border border-border bg-card p-4">
             <p className="num font-heading text-xl font-extrabold">{byStatus[key] ?? 0}</p>
@@ -196,7 +209,7 @@ export function AdminPanel() {
                   )}
                 </div>
                 <span className="text-xs text-muted-foreground">
-                  {formatRelative(report.createdAt, Date.now())}
+                  {formatRelative(report.createdAt)}
                 </span>
               </li>
             ))}
@@ -228,7 +241,9 @@ export function AdminPanel() {
                   <td className="p-3 text-muted-foreground">{listing.category.name}</td>
                   <td className="num p-3">{formatPrice(listing.price)}</td>
                   <td className="p-3 text-muted-foreground">
-                    {statusNames[listing.status] ?? listing.status}
+                    {listing.approved
+                      ? (statusNames[listing.status] ?? listing.status)
+                      : "ממתינה לאישור"}
                   </td>
                   <td className="p-3">
                     {listing.status === "removed" ? (
