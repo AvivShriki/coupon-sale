@@ -24,14 +24,15 @@ export function AdminPanel() {
   const [pending, startTransition] = useTransition();
   const isAdmin = user?.role === "admin";
 
+  // בלי סינון סטטוס: כל מודעה שלא אושרה צריכה להופיע כאן, בלי קשר למצבה
   const queue = useListings({
     pendingApproval: true,
-    status: ["active", "paused", "sold"],
+    status: ["active", "paused", "sold", "expired", "pending_review"],
     sort: "newest",
     perPage: 50,
   });
   const all = useListings({
-    status: ["active", "paused", "sold", "expired", "removed"],
+    status: ["active", "paused", "sold", "expired", "pending_review", "removed"],
     perPage: 50,
   });
   const reports = useReports();
