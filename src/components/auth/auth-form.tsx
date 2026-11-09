@@ -19,6 +19,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
@@ -39,13 +40,20 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    setFormError(null);
     if (!validate()) return;
+
     setPending(true);
     try {
       if (mode === "login") await signIn(email, password);
       else await signUp({ displayName, email, password, phone });
       toast.success(mode === "login" ? "התחברת בהצלחה" : "החשבון נוצר");
       router.replace(next);
+    } catch (cause) {
+      const message =
+        cause instanceof Error ? cause.message : "משהו השתבש, אפשר לנסות שוב";
+      setFormError(message);
+      toast.error(message);
     } finally {
       setPending(false);
     }
@@ -110,6 +118,23 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                 autoComplete={mode === "login" ? "current-password" : "new-password"}
               />
             </Field>
+
+            {formError && (
+              <p
+                role="alert"
+                className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm font-medium text-destructive"
+              >
+                {formError}
+                {mode === "login" && formError.includes("שגויים") && (
+                  <>
+                    {" "}
+                    <Link href={`/signup?next=${next}`} className="underline">
+                      אין לכם עדיין חשבון?
+                    </Link>
+                  </>
+                )}
+              </p>
+            )}
 
             <button
               type="submit"
