@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Heart, LayoutList, LogOut, User } from "lucide-react";
+import { Heart, LayoutList, LogOut, ShieldCheck, User } from "lucide-react";
 import { cn } from "cn";
 import { useAuth } from "@/lib/auth/auth-context";
 
@@ -46,6 +46,15 @@ export function AccountShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <nav className="mt-3 flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
+            {user.role === "admin" && (
+              <Link
+                href="/admin"
+                className="flex shrink-0 items-center gap-2 rounded-lg bg-primary-soft px-3 py-2 text-sm font-semibold text-primary transition hover:bg-primary/15"
+              >
+                <ShieldCheck className="size-4" />
+                פאנל ניהול
+              </Link>
+            )}
             {links.map((link) => {
               const active = link.exact
                 ? pathname === link.href

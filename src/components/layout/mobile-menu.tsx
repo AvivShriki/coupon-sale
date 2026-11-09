@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Heart, LogIn, Menu, Plus, Search, User, X } from "lucide-react";
+import { Heart, LogIn, Menu, Plus, Search, ShieldCheck, User, X } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { CategoryIcon } from "@/components/common/category-icon";
@@ -48,9 +48,20 @@ export function MobileMenu({ categories }: { categories: Category[] }) {
             המועדפים שלי
           </MenuLink>
           {user ? (
-            <MenuLink href="/account" onClick={close} icon={<User className="size-4" />}>
-              האזור האישי
-            </MenuLink>
+            <>
+              <MenuLink href="/account" onClick={close} icon={<User className="size-4" />}>
+                האזור האישי
+              </MenuLink>
+              {user.role === "admin" && (
+                <MenuLink
+                  href="/admin"
+                  onClick={close}
+                  icon={<ShieldCheck className="size-4" />}
+                >
+                  פאנל ניהול
+                </MenuLink>
+              )}
+            </>
           ) : (
             <MenuLink href="/login" onClick={close} icon={<LogIn className="size-4" />}>
               התחברות / הרשמה

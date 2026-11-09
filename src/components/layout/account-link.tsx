@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Heart, LogIn, User } from "lucide-react";
+import { Heart, LogIn, ShieldCheck, User } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useFavorites } from "@/lib/favorites";
 
@@ -11,6 +11,16 @@ export function HeaderUserActions() {
 
   return (
     <div className="flex items-center gap-1">
+      {user?.role === "admin" && (
+        <Link
+          href="/admin"
+          aria-label="פאנל ניהול"
+          title="פאנל ניהול"
+          className="grid size-10 place-items-center rounded-full text-muted-foreground transition hover:bg-primary-soft hover:text-primary"
+        >
+          <ShieldCheck className="size-5" />
+        </Link>
+      )}
       <Link
         href="/account/favorites"
         aria-label="המועדפים שלי"
