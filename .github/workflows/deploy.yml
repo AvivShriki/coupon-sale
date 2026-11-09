@@ -27,11 +27,12 @@ jobs:
       - run: npx tsc --noEmit
       - run: npm run lint
       - name: Build static site
-        # תאריך הבנייה הוא נקודת הייחוס של נתוני הדמה, כדי שהתאריכים
-        # במודעות יישארו טריים בכל פריסה
-        run: |
-          export NEXT_PUBLIC_SEED_BASE="$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
-          npm run build
+        # המפתחות ציבוריים בכוונה — הם נכנסים לקוד שרץ בדפדפן,
+        # וההרשאות נאכפות במסד הנתונים
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
